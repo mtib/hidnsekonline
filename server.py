@@ -173,6 +173,17 @@ class Gameserver:
                 time.sleep(.2)
                 self.smsl(scapcon, "/youpos {} {}".format(x,y))
                 time.sleep(.5)
+        self.startround = time.time()
+        def tellMurderer(self):
+            time.sleep(55)
+            self.sendto(self.murderer[0],"/startsoon")
+        def checkIfHidden(self):
+            time.sleep(60)
+            self.sendall("/murdernow")
+        #threading.Thread(target=tellMurderer, args=(self),daemon=True).start()
+        #threading.Thread(target=checkIfHidden,args=(self),daemon=True).start()
+
+
 
     def sendall(self, msg):
         for key in self.livecon:

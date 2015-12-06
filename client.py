@@ -69,7 +69,12 @@ class Game(object):
                     print("game started!\nyou are an ESCAPEE\ntry to find a place to hide with your companion")
                 elif self.type == "MURDERER":
                     print("game started!\nyou are the MURDERER\nthe ESCAPEES have 1 minute to hide")
-                    time.sleep(55)
+                    while not str(self.socket.recv(256), "utf") == "/startsoon":
+                        pass
+                    print("Hunt starts in five minutes")
+                    while not str(self.socket.recv(256), "utf") == "/murdernow":
+                        pass
+                    print("Figure out where they are hiding, and enter /kill")
                     self.posx = random.randrange(3)
                     self.posy = random.randrange(3)
                     self.printmap()
