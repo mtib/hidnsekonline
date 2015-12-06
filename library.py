@@ -1,7 +1,7 @@
-def drawmap(x,y, pre="  ", you="X", unknown="?", lines=["","",""]):
+def drawmap(x,y, pre="  ", you="X", unknown="?", lines=["","",""], size=(3,3)):
     m = "\n"
-    for ty in range(3):
-        for tx in range(3):
+    for ty in range(size[1]):
+        for tx in range(size[0]):
             if tx == 0:
                 m += str(pre)
                 m +="["
@@ -16,7 +16,7 @@ def drawmap(x,y, pre="  ", you="X", unknown="?", lines=["","",""]):
             m+="\t\t"
             m+=str(lines[1])
         m+="\n"
-        if ty < 2:
+        if ty < (size[1]-1):
             m+=str(pre)
             m+=" |   |   |\t\t"
             if ty == 0:

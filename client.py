@@ -9,18 +9,21 @@ class Game:
         self.start = time.time()
         self.modus = "waiting"
         self.chat = ["","","","","","","",""]
+        self.lock = False
     def connect(self, server, username, port=2020):
         s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         s.connect((server,port))
         self.send(s,"/join {}".format(username))
-        if self.receive(s) == "/welcome":
-            s.close()
+        a=self.receive(s).split()
+        s.close()
+        if a[0] == "/welcome":
+            self.WIDTH = int(a[1])
+            self.HEIGHT = int(a[2])
             self.username = username
             self.server = server
             self.port = port
             return True
         else:
-            s.close()
             return False
     def getcon(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,6 +42,7 @@ class Game:
                 s=self.getcon()
                 self.send(s,"/murderer {} wait".format(self.username))
                 a=self.receive(s).split()
+                s.close()
                 if a[0]=="/go":
                     break
                 else:
@@ -48,20 +52,30 @@ class Game:
             s=self.getcon()
             self.send(s,"/escapee {} init".format(self.username))
             a=self.receive(s).split()
-            print(a)
+            s.close()
             if a[0] == "/youpos":
                 self.x = int(a[1])
                 self.y = int(a[2])
+                #self.fx = int(a[3])
+                #self.fy = int(a[4])
 
 def updateDisplay():
     global g
     while True:
+        g.lock = True
         print("/update")
-        print(drawmap(g.x,g.y))
+        time.sleep(.1)
+        s = g.getcon()
+        g.send(s,"/update {}".format(g.username))
+        a=g.receive(s).split("\n")
+        s.close()
+        g.lock = False
+        g.chat=a[:8]
+        print(drawmap(g.x,g.y,size=(g.WIDTH,g.HEIGHT)))
         for line in g.chat:
             print(line)
         print("\n>> ",end="")
-        time.sleep(5)
+        time.sleep(2)
 
 g = Game()
 
@@ -78,11 +92,11 @@ def main(args):
     updater = threading.Thread(daemon=True, target=updateDisplay)
     while True:
         time.sleep(.5)
-        s = g.getcon()
-        print("switching for modus {}".format(g.modus))
         if g.modus == "waiting":
+            s = g.getcon()
             g.send(s,"/ping {}".format(g.username))
             a = g.receive(s).split()
+            s.close()
             if a[0] == "/ping":
                 print("waiting for more players [{}/3]".format(a[1]))
                 continue
@@ -91,11 +105,31 @@ def main(args):
             else:
                 s=g.getcon()
                 g.send(s,"/disconnect {}".format(g.username))
+                s.close()
                 break
         if g.modus == "hiding" and g.type == "ESCAPEE":
             if not updater.is_alive():
                 updater.start()
             cmd = input(">> ")
+            if len(cmd) and cmd[0]=="/":
+                if cmd in ["/left","/right","/up","/down"]:
+                    while g.lock:
+                        time.sleep(.1)
+                    s = g.getcon()
+                    g.send(s,"{} {}".format(cmd,g.username))
+                    a=g.receive(s).split()
+                    s.close()
+                    if a[0]=="/youpos":
+                        g.x=int(a[1])
+                        g.y=int(a[2])
+                        g.fx = int(a[3])
+                        g.fy = int(a[4])
+            elif len(cmd):
+                while g.lock:
+                    time.sleep(.1)
+                s = g.getcon()
+                g.send(s,"/chat {} {}".format(g.username,cmd))
+                s.close()
 
 
 
