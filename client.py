@@ -33,7 +33,7 @@ class Game(object):
         if self.debug:
             self.serverip = "localhost"
             self.serverport = 2020
-            self.username = "player_{}".format(int(time.time())).split()[0]
+            self.username = "player_{}".format(int(time.time()*1000)).split()[0]
             print("Username:",self.username)
         else:
             self.serverip =   input("Server adress: [default:localhost] ")
@@ -48,7 +48,6 @@ class Game(object):
             else:
                 self.serverport = 2020
             self.username = input("Username: ").split()[0]
-            #self.send("/username {}".format(self.username))
         self.socket.connect((self.serverip,self.serverport))
         self.send("/connect")
         time.sleep(.3)
@@ -82,8 +81,62 @@ class Game(object):
                 cmd, x, y = servermsg.split()
                 self.posx = int(x)
                 self.posy = int(y)
-                self.printmap()
-                command = str(input(">> "))
+                break
+        log = ""
+        self.socket.setblocking(0)
+        while not self.hidden:
+            command = ""
+            while not len(command):
+                command = ""
+                try:
+                    log = str(self.socket.recv(4096), "utf-8")
+                except:
+                    pass
+                log += "\chat Enter your command:\n"
+                output = []
+                lines = log.split("\n")
+                for line in lines:
+                    try:
+                        cmd, arg = line.split(maxsplit=1)
+                        if cmd == "/chat":
+                            output.append(arg)
+                        elif cmd == "/enter":
+                            output.append("{}{}{}".format("# ", arg, "is here too."))
+                        elif cmd == "/youpos":
+                            x, y = arg.split()
+                            if int(x) != self.posx or int(y) != self.posy:
+                                command = "/gotit /youpos"
+                            self.posx = int(x)
+                            self.posy = int(y)
+                        elif cmd == "/meet":
+                            answered = False
+                            while not answered:
+                                ans = input("Do you want to hide here? [y/n] ")
+                                if ans in "yY":
+                                    answered = True
+                                    self.hidden = True
+                                command = "/hiding {} {}".format(self.posx, self.posy)
+                                break
+                                if ans in "nN":
+                                    answered = True
+                    except ValueError:
+                        pass
+                if len(command):
+                    pass
+                else:
+                    self.printmap()
+                    for line in output:
+                        print(line)
+                    command = str(input(">> "))
+                    if command.startswith("/"):
+                        pass
+                    elif len(command):
+                        command = "/chat {}".format(command)
+            self.send(command)
+            time.sleep(.5)
+        print("You are now hidden")
+
+
 
     def drawmap(self, x,y, pre="  ", you="X", unknown="?", lines=["","",""]):
         m = "\n"
@@ -115,7 +168,7 @@ class Game(object):
 
     def printmap(self):
         if self.type == "ESCAPEE":
-            m = self.drawmap(self.posx, self.posy, lines=["You are at the X","use /left, /right, /up or /down","to move. Find your companion"])
+            m = self.drawmap(self.posx, self.posy, lines=["You are at the X. Use /left, /right,","/up or /down to move.","Find your companion. Press Return to wait."])
             print(m)
 
     def send(self, msg):
